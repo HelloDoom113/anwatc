@@ -8,38 +8,52 @@ const scraper = new AnimeKaiScraper();
 
 // GET /api/v2/animekai/home?url=<homepage_url>
 animekaiRouter.get('/home', async (c) => {
-  const cacheConfig = c.get('CACHE_CONFIG');
-  const url = c.req.query('url') || 'https://animekai.to/home';
+  try {
+    const cacheConfig = c.get('CACHE_CONFIG');
+    const url = c.req.query('url') || 'https://animekai.to/home';
 
-  const html = await fetch(url).then((res) => res.text());
+    const html = await fetch(url).then((res) => res.text());
 
-  const data = await cache.getOrSet(
-    async () => scraper.getHomePage(html),
-    cacheConfig.key,
-    cacheConfig.duration
-  );
+    const data = await cache.getOrSet(
+      async () => scraper.getHomePage(html),
+      cacheConfig.key,
+      cacheConfig.duration
+    );
 
-  return c.json({ success: true, data }, { status: 200 });
+    return c.json({ success: true, data }, { status: 200 });
+  } catch (error: any) {
+    return c.json(
+      { success: false, error: error?.message, stack: error?.stack },
+      { status: 500 }
+    );
+  }
 });
 
 // GET /api/v2/animekai/anime?url=<anime_page_url>
 animekaiRouter.get('/anime', async (c) => {
-  const cacheConfig = c.get('CACHE_CONFIG');
-  const url = c.req.query('url');
+  try {
+    const cacheConfig = c.get('CACHE_CONFIG');
+    const url = c.req.query('url');
 
-  if (!url) {
-    return c.json({ success: false, error: 'Missing anime URL' }, { status: 400 });
+    if (!url) {
+      return c.json({ success: false, error: 'Missing anime URL' }, { status: 400 });
+    }
+
+    const html = await fetch(url).then((res) => res.text());
+
+    const data = await cache.getOrSet(
+      async () => scraper.getAnimeDetails(html),
+      cacheConfig.key,
+      cacheConfig.duration
+    );
+
+    return c.json({ success: true, data }, { status: 200 });
+  } catch (error: any) {
+    return c.json(
+      { success: false, error: error?.message, stack: error?.stack },
+      { status: 500 }
+    );
   }
-
-  const html = await fetch(url).then((res) => res.text());
-
-  const data = await cache.getOrSet(
-    async () => scraper.getAnimeDetails(html),
-    cacheConfig.key,
-    cacheConfig.duration
-  );
-
-  return c.json({ success: true, data }, { status: 200 });
 });
 
 export { animekaiRouter };
